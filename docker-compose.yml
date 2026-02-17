@@ -20,9 +20,7 @@ services:
     ports:
       - "54321:80"
     depends_on:
-      - postgres
-    networks:
-      - ci-docker-networks
+      - postgres    
 
 networks:
   default:
