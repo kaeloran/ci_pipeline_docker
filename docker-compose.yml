@@ -9,6 +9,8 @@ services:
       - "5432:5432"
     volumes:
       - /postgres-data:/var/lib/postgresql/data  
+    networks:
+      - ci-docker-networks  
 
   pgadmin-compose:
     image: dpage/pgadmin4
@@ -19,4 +21,10 @@ services:
       - "54321:80"
     depends_on:
       - postgres
+    networks:
+      - ci-docker-networks
+
+networks:
+  default:
+    name: "ci-docker-networks"
 
