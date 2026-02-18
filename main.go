@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/guilhermeonrails/api-go-gin/database"
-	"github.com/guilhermeonrails/api-go-gin/routes"
+	"ci_pipeline_docker/database"
+	"ci_pipeline_docker/routes"
 )
 
 func main() {

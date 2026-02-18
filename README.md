@@ -20,12 +20,43 @@ pipeline that builds a Dockerized database for tests.
 
 - Environment variables used by the application:
   - `DB_HOST` (default `localhost`)
-  - `DB_USER` (default `root`)
-  - `DB_PASSWORD` (default `root`)
-  - `DB_NAME` (default `root`)
+  - `DB_USER` (default `root` but frequently provided via CI secret or local `.env`)
+  - `DB_PASSWORD` (default `root` but frequently provided via CI secret or local `.env`)
+  - `DB_NAME` (default `root` but frequently provided via CI secret or local `.env`)
   - `DB_PORT` (default `5432`)
 
-  The CI workflow sets `DB_HOST=localhost` before running tests.
+  In GitHub Actions you should create repository secrets named
+  `DB_USER`, `DB_PASSWORD` and `DB_NAME`.  The workflow exports those values
+  to both the postgres container and the test run.
+
+  The CI job itself also exports `DB_HOST=localhost` before invoking the
+  tests so they target the published container port.
+
+  For local development you can either export the same environment
+  variables in your shell or place them in a file named `.env` at the
+  repository root.  `docker compose` automatically reads `.env` when
+  substituting variables, so the following file is sufficient:
+
+  ```env
+  DB_USER=myuser
+  DB_PASSWORD=mypassword
+  DB_NAME=mydb
+  ```
+
+  Then start the stack and run tests from the host:
+
+  ```sh
+  docker compose up -d            # uses values from .env (or shell vars)
+  export DB_HOST=localhost        # tests need to know the host
+  go test -v main_test.go
+  ```
+
+  Alternatively, skip `.env` and simply prefix the commands:
+
+  ```sh
+  DB_USER=foo DB_PASSWORD=bar DB_NAME=baz docker compose up -d
+  DB_HOST=localhost go test -v main_test.go
+  ```
 
 ## GitHub Actions
 

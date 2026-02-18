@@ -1,4 +1,4 @@
-module github.com/guilhermeonrails/api-go-gin
+module ci_pipeline_docker
 
 go 1.15
 

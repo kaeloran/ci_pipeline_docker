@@ -2,9 +2,10 @@ services:
   postgres:
     image: "postgres:17"
     environment:
-      - POSTGRES_USER=root
-      - POSTGRES_PASSWORD=root
-      - POSTGRES_DB=root
+      # allow overriding via environment variables during CI or local dev
+      - POSTGRES_USER=${DB_USER:-root}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-root}
+      - POSTGRES_DB=${DB_NAME:-root}
     ports:
       - 5432:5432    
     volumes:

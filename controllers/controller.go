@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/guilhermeonrails/api-go-gin/database"
-	"github.com/guilhermeonrails/api-go-gin/models"
+	"ci_pipeline_docker/database"
+	"ci_pipeline_docker/models"
 )
 
 func Saudacoes(c *gin.Context) {

@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/guilhermeonrails/api-go-gin/models"
+	"ci_pipeline_docker/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -15,14 +15,7 @@ var (
 	err error
 )
 
-func ConectaComBancoDeDados() {
-	// allow overriding connection parameters via environment variables so tests
-	// and other environments can point to the appropriate database host.
-	// The default is "localhost" since most development and CI (where the
-	// postgres container is published on 127.0.0.1) connect from the host
-	// machine. When running the application inside a Docker network you can set
-	// DB_HOST=postgres (or whatever service name) in the container's env
-	// configuration.
+func ConectaComBancoDeDados() {	
 	host := os.Getenv("DB_HOST")
 	user := os.Getenv("DB_USER")
 	password := os.Getenv("DB_PASSWORD")
