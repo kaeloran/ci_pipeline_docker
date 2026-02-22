@@ -19,21 +19,34 @@ jobs:
         go_version: ['1.22']
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v4
 
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go_version }}
 
+    - name: Setup SSH Key
+      run: |
+        mkdir -p ~/.ssh/
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H "${{ needs.terraform.outputs.app_ip }}" >> ~/.ssh/known_hosts
+
+    - name: Create SSH Tunnel
+      run: |
+        ssh -N -L 5432:${{ needs.terraform.outputs.db_endpoint }}:${{ needs.terraform.outputs.db_port }} ubuntu@${{ needs.terraform.outputs.app_ip }} &
+
     - name: Test
       env:
-        DB_HOST: ${{ needs.terraform.outputs.db_endpoint }}
-        DB_PORT: ${{ needs.terraform.outputs.db_port }}
+        DB_HOST: "127.0.0.1"
+        DB_PORT: "5432"
         DB_USER: ${{ secrets.DB_USER }}
         DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         DB_NAME: ${{ secrets.DB_NAME }}
-      run: go test -v ./...
+      run: |
+        sleep 5 # wait for tunnel to be established
+        go test -v ./...
 
   build:
     needs: test
@@ -48,14 +61,17 @@ jobs:
       run: go build -v main.go
 
     - name: Upload binary artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: go-app
-        path: main
+        path: |
+          main
+          templates/ # Super importante para a API achar o HTML na EC2!
   
   deploy_ec2:
     needs: [terraform, build]
     uses: ./.github/workflows/ec2.yml
     with:
       app-ip: ${{ needs.terraform.outputs.app_ip }}
+      db-endpoint: ${{ needs.terraform.outputs.db_endpoint }} 
     secrets: inherit

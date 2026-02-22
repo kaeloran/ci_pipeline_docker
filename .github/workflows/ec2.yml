@@ -7,26 +7,55 @@ on:
         description: "IP público da instância onde a API será implantada"
         required: true
         type: string
+      db-endpoint: # Adicionado para receber o endereço real do banco
+        description: "Endpoint do RDS"
+        required: true
+        type: string
 
 jobs:
   EC2:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Download a Build Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: go-app
 
-      - name: Deploy to EC2
-        env:
-          HOST: ${{ inputs.app-ip }}
-        run: |
-          # supondo que o artefato seja um binário chamado main
-          scp -o StrictHostKeyChecking=no main ubuntu@$HOST:/home/ubuntu/app/
-          ssh -o StrictHostKeyChecking=no ubuntu@$HOST <<'EOF'
-            sudo systemctl stop myapp || true
-            sudo mv /home/ubuntu/app/main /usr/local/bin/myapp
-            sudo systemctl start myapp
-          EOF
+      # 1. COPIAR OS ARQUIVOS PARA A EC2
+      - name: Copy files via scp
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ inputs.app-ip }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "main,templates/" # Envia o binário e a pasta HTML
+          target: "/home/ubuntu/app"
+
+      # 2. EXECUTAR OS COMANDOS
+      - name: Executing remote ssh commands
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ inputs.app-ip }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/ubuntu/app
+
+            # Derruba a versão antiga da API se ela estiver rodando
+            killall main || true
+
+            # Dá permissão de execução
+            chmod +x main
+
+            # Configura as variáveis de ambiente com a sintaxe correta (=)
+            export DB_HOST="${{ inputs.db-endpoint }}" 
+            export DB_USER="${{ secrets.DB_USER }}"
+            export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+            export DB_NAME="${{ secrets.DB_NAME }}"
+            export DB_PORT="5432"
+            export PORT="8000"
+
+            # Executa a aplicação em background e joga os logs para um arquivo
+            nohup ./main > nohup.out 2> nohup.err < /dev/null &

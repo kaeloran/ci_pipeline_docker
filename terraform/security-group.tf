@@ -18,6 +18,13 @@ resource "aws_security_group" "asg-alura-go-api-dev" {
   name        = "app"
   description = "Security group for application instances, also used by RDS"
 
+  ingress {
+    from_port   = 8000
+    to_port     = 8000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] 
+  }
+  
   tags = {
     Name = "app"
   }
