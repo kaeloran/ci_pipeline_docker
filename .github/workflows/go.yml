@@ -4,16 +4,16 @@ on:
   push:
     branches: [ '*' ]
   pull_request:
-    branches: [ '*' ]
+    branches: [ '*' ]    
 
 jobs:
-
   test:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         go_version: ['1.22']
         os: ['ubuntu-latest', 'ubuntu-22.04']
+    
     steps:
     - uses: actions/checkout@v6 
 
@@ -34,12 +34,12 @@ jobs:
 
     - name: Test
       env:
-        DB_HOST: ${{ secrets.DB_HOST }}
+        DB_HOST: "127.0.0.1"
         DB_PORT:  ${{ secrets.DB_PORT }}
         DB_USER: ${{ secrets.DB_USER }}
         DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         DB_NAME: ${{ secrets.DB_NAME }}
-      run: go test -v main_test.go
+      run: go test -v ./...
   
   build:
     needs: test
@@ -50,10 +50,24 @@ jobs:
         os: ['ubuntu-latest', 'ubuntu-22.04']
     steps:
     - uses: actions/checkout@v3
+
     - name: Build
       run: go build -v main.go  
 
-  docker:
+    - name: Upload binary artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: go-app
+        path: main
+
+  terraform:
     needs: build
-    uses: ./.github/workflows/ci_docker.yml
+    uses: ./.github/workflows/terraform.yml
+    secrets: inherit      
+
+  deploy_ec2:
+    needs: terraform
+    uses: ./.github/workflows/ec2.yml
+    with:
+      app-ip: ${{ needs.terraform.outputs.app_ip }}
     secrets: inherit

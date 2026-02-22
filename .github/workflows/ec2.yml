@@ -1,0 +1,32 @@
+name: Entrega contínua EC2
+
+on:
+  workflow_call:
+    inputs:
+      app-ip:
+        description: "IP público da instância onde a API será implantada"
+        required: true
+        type: string
+
+jobs:
+  EC2:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download a Build Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: go-app
+
+      - name: Deploy to EC2
+        env:
+          HOST: ${{ inputs.app-ip }}
+        run: |
+          # supondo que o artefato seja um binário chamado main
+          scp -o StrictHostKeyChecking=no main ubuntu@$HOST:/home/ubuntu/app/
+          ssh -o StrictHostKeyChecking=no ubuntu@$HOST <<'EOF'
+            sudo systemctl stop myapp || true
+            sudo mv /home/ubuntu/app/main /usr/local/bin/myapp
+            sudo systemctl start myapp
+          EOF
