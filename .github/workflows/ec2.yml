@@ -7,8 +7,12 @@ on:
         description: "IP público da instância onde a API será implantada"
         required: true
         type: string
-      db-endpoint: # Adicionado para receber o endereço real do banco
+      db-endpoint:
         description: "Endpoint do RDS"
+        required: true
+        type: string
+      sg-ssh-id: # ADICIONADO AQUI
+        description: "ID do Security Group de acesso SSH"
         required: true
         type: string
 
@@ -23,17 +27,36 @@ jobs:
         with:
           name: go-app
 
-      # 1. COPIAR OS ARQUIVOS PARA A EC2
+      # 1. Configura a AWS para conseguir abrir a porta
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      # 2. Descobre o IP do runner
+      - name: Get GitHub Runner IP
+        id: ip
+        run: echo "ipv4=$(curl -s https://checkip.amazonaws.com)" >> $GITHUB_OUTPUT
+      
+      # 3. Abre a porta 22 na AWS APENAS para este IP
+      - name: Whitelist Runner IP
+        run: |
+          aws ec2 authorize-security-group-ingress \
+            --group-id ${{ inputs.sg-ssh-id }} \
+            --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32  
+
+      # 4. COPIAR OS ARQUIVOS PARA A EC2
       - name: Copy files via scp
         uses: appleboy/scp-action@master
         with:
           host: ${{ inputs.app-ip }}
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "main,templates/" # Envia o binário e a pasta HTML
+          source: "main,templates/" 
           target: "/home/ubuntu/app"
 
-      # 2. EXECUTAR OS COMANDOS
+      # 5. EXECUTAR OS COMANDOS
       - name: Executing remote ssh commands
         uses: appleboy/ssh-action@master
         with:
@@ -43,13 +66,9 @@ jobs:
           script: |
             cd /home/ubuntu/app
 
-            # Derruba a versão antiga da API se ela estiver rodando
             killall main || true
-
-            # Dá permissão de execução
             chmod +x main
 
-            # Configura as variáveis de ambiente com a sintaxe correta (=)
             export DB_HOST="${{ inputs.db-endpoint }}" 
             export DB_USER="${{ secrets.DB_USER }}"
             export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
@@ -57,5 +76,4 @@ jobs:
             export DB_PORT="5432"
             export PORT="8000"
 
-            # Executa a aplicação em background e joga os logs para um arquivo
             nohup ./main > nohup.out 2> nohup.err < /dev/null &

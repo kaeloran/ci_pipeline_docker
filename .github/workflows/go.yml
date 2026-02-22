@@ -13,40 +13,13 @@ jobs:
 
   test:
     needs: terraform
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go_version: ['1.22']
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: ${{ matrix.go_version }}
-
-    - name: Setup SSH Key
-      run: |
-        mkdir -p ~/.ssh/
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H "${{ needs.terraform.outputs.app_ip }}" >> ~/.ssh/known_hosts
-
-    - name: Create SSH Tunnel
-      run: |
-        ssh -N -L 5432:${{ needs.terraform.outputs.db_endpoint }}:${{ needs.terraform.outputs.db_port }} ubuntu@${{ needs.terraform.outputs.app_ip }} &
-
-    - name: Test
-      env:
-        DB_HOST: "127.0.0.1"
-        DB_PORT: "5432"
-        DB_USER: ${{ secrets.DB_USER }}
-        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-        DB_NAME: ${{ secrets.DB_NAME }}
-      run: |
-        sleep 5 # wait for tunnel to be established
-        go test -v ./...
+    uses: ./.github/workflows/go_test.yml
+    with:
+      app-ip: ${{ needs.terraform.outputs.app_ip }}
+      db-endpoint: ${{ needs.terraform.outputs.db_endpoint }}
+      db-port: ${{ needs.terraform.outputs.db_port }}
+      sg-ssh-id: ${{ needs.terraform.outputs.sg_ssh_id }}
+    secrets: inherit
 
   build:
     needs: test
@@ -55,7 +28,7 @@ jobs:
       matrix:
         go_version: ['1.22']
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4 # Atualizado para v4
 
     - name: Build
       run: go build -v main.go
@@ -66,12 +39,13 @@ jobs:
         name: go-app
         path: |
           main
-          templates/ # Super importante para a API achar o HTML na EC2!
+          templates/
   
   deploy_ec2:
     needs: [terraform, build]
     uses: ./.github/workflows/ec2.yml
     with:
       app-ip: ${{ needs.terraform.outputs.app_ip }}
-      db-endpoint: ${{ needs.terraform.outputs.db_endpoint }} 
+      db-endpoint: ${{ needs.terraform.outputs.db_endpoint }}
+      sg-ssh-id: ${{ needs.terraform.outputs.sg_ssh_id }}
     secrets: inherit

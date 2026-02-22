@@ -11,3 +11,8 @@ output "db_port" {
   description = "Port used by the database"
   value       = aws_db_instance.postgres-alura-go-dev.port
 }
+
+output "sg_ssh_id" {
+  description = "ID do Security Group de SSH"
+  value       = aws_security_group.asg-acesso-ssh.id
+}
