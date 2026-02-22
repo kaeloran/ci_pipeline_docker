@@ -6,9 +6,8 @@ variable "amis" {
 }
 
 variable "cdirs_acesso_remoto" {
+    description = "A list of CIDR blocks to allow remote access from. To be provided via secrets."
     type = list(string)
-    default = ["45.239.103.136/32"]
-  
 }
 
 variable "key_name" {

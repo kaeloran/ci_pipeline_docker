@@ -45,7 +45,7 @@ jobs:
         working-directory: ./terraform
 
       - name: Terraform plan
-        run: terraform plan -out=tfplan
+        run: terraform plan -out=tfplan -var 'cdirs_acesso_remoto=${{ secrets.REMOTE_ACCESS_CIDR }}'
         working-directory: ./terraform
       
       - name: Terraform apply
