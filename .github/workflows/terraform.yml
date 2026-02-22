@@ -1,4 +1,4 @@
-name: Terraform
+name: Terraform Pipeline
 
 on:
   workflow_call:
@@ -56,9 +56,9 @@ jobs:
         id: outputs
         working-directory: ./terraform
         run: |
-          ip=$(terraform output -raw alura_go_api_dev_public_ip)
+          ip=$(terraform output -raw alura_go_api_dev_public_ip 2>/dev/null)
           echo "app_ip=$ip" >> $GITHUB_OUTPUT
-          db_endpoint=$(terraform output -raw db_endpoint)
+          db_endpoint=$(terraform output -raw db_endpoint 2>/dev/null)
           echo "db_endpoint=$db_endpoint" >> $GITHUB_OUTPUT
-          db_port=$(terraform output -raw db_port)
+          db_port=$(terraform output -raw db_port 2>/dev/null)
           echo "db_port=$db_port" >> $GITHUB_OUTPUT
