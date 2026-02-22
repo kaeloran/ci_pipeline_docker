@@ -36,7 +36,7 @@ jobs:
           aws-region: us-east-1  
 
       - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v2.0.3
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.7.5
 
@@ -56,9 +56,9 @@ jobs:
         id: outputs
         working-directory: ./terraform
         run: |
-          ip=$(terraform output -raw alura_go_api_dev_public_ip 2>/dev/null)
+          ip=$(terraform output -raw alura_go_api_dev_public_ip)
           echo "app_ip=$ip" >> $GITHUB_OUTPUT
-          db_endpoint=$(terraform output -raw db_endpoint 2>/dev/null)
+          db_endpoint=$(terraform output -raw db_endpoint)
           echo "db_endpoint=$db_endpoint" >> $GITHUB_OUTPUT
-          db_port=$(terraform output -raw db_port 2>/dev/null)
+          db_port=$(terraform output -raw db_port)
           echo "db_port=$db_port" >> $GITHUB_OUTPUT
