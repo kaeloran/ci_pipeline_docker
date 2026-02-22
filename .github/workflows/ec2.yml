@@ -16,6 +16,10 @@ on:
         required: true
         type: string
 
+permissions:
+  id-token: write 
+  contents: read
+          
 jobs:
   EC2:
     runs-on: ubuntu-latest
@@ -26,8 +30,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: go-app
-
-      # 1. Configura a AWS para conseguir abrir a porta
+      
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
