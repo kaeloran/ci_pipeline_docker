@@ -45,7 +45,10 @@ jobs:
         working-directory: ./terraform
 
       - name: Terraform plan
-        run: terraform plan -out=tfplan -var="cdirs_acesso_remoto=${{ secrets.REMOTE_ACCESS_CIDR }}" -var="s3_deploy_bucket=${{ secrets.S3_DEPLOY_BUCKET }}"
+        env:
+          TF_VAR_cdirs_acesso_remoto: ${{ secrets.REMOTE_ACCESS_CIDR }}
+          TF_VAR_s3_deploy_bucket: ${{ secrets.S3_DEPLOY_BUCKET }}
+        run: terraform plan -out=tfplan
         working-directory: ./terraform
       
       - name: Terraform apply
