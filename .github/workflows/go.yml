@@ -46,4 +46,6 @@ jobs:
     with:      
       instance-id: ${{ needs.terraform.outputs.instance_id }}
       db-endpoint: ${{ needs.terraform.outputs.db_endpoint }}
+      db-user: ${{ needs.terraform.outputs.db_user }}
+      db-password: ${{ needs.terraform.outputs.db_password }}
     secrets: inherit

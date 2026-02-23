@@ -12,6 +12,12 @@ on:
       db_port:
         description: "Port of the database"
         value: ${{ jobs.terraform.outputs.db_port }}
+      db_user:
+        description: "DB Username do Terraform"
+        value: ${{ jobs.terraform.outputs.db_user }} # CORRIGIDO AQUI (Estava required/type string em vez de value)
+      db_password:
+        description: "DB Password do Terraform"
+        value: ${{ jobs.terraform.outputs.db_password }} # CORRIGIDO AQUI
 
 permissions:
   id-token: write 
@@ -24,6 +30,8 @@ jobs:
       instance_id: ${{ steps.outputs.outputs.instance_id }}
       db_endpoint: ${{ steps.outputs.outputs.db_endpoint }}
       db_port: ${{ steps.outputs.outputs.db_port }}
+      db_user: ${{ steps.outputs.outputs.db_user }}
+      db_password: ${{ steps.outputs.outputs.db_password }}
 
     steps:
       - name: Checkout code
@@ -59,7 +67,6 @@ jobs:
         id: outputs
         working-directory: ./terraform
         run: |
-          # Lemos o ID da instância gerado pelo Terraform e guardamos na variável do GitHub Actions
           instance=$(terraform output -raw ec2_instance_id)
           echo "instance_id=$instance" >> $GITHUB_OUTPUT
           
@@ -68,3 +75,11 @@ jobs:
           
           db_port=$(terraform output -raw db_port)
           echo "db_port=$db_port" >> $GITHUB_OUTPUT
+
+          db_user=$(terraform output -raw db_user)
+          echo "::add-mask::$db_user"
+          echo "db_user=$db_user" >> $GITHUB_OUTPUT
+          
+          db_password=$(terraform output -raw db_password)
+          echo "::add-mask::$db_password"
+          echo "db_password=$db_password" >> $GITHUB_OUTPUT

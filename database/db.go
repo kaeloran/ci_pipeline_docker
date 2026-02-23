@@ -38,7 +38,7 @@ func ConectaComBancoDeDados() {
 	}
 
 	stringDeConexao := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=require",
 		host, user, password, dbname, port,
 	)
 
