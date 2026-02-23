@@ -42,14 +42,14 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_NAME: ${{ secrets.DB_NAME }}
         run: |
-          {
-            echo "DB_HOST=${{ inputs.db-endpoint }}"
-            echo "DB_USER=\"${DB_USER}\""
-            echo "DB_PASSWORD=\"${DB_PASSWORD}\""
-            echo "DB_NAME=\"${DB_NAME}\""
-            echo "DB_PORT=5432"
-            echo "PORT=8000"
-          } > .env
+          cat <<EOF > .env
+          DB_HOST=${{ inputs.db-endpoint }}
+          DB_USER="${DB_USER}"
+          DB_PASSWORD="${DB_PASSWORD}"
+          DB_NAME="${DB_NAME}"
+          DB_PORT=5432
+          PORT=8000
+          EOF
 
       - name: Empacotar Aplicação
         run: zip -r app.zip main templates/ .env
@@ -97,7 +97,7 @@ jobs:
               "cd app",
               "chmod +x main",
               "chown -R ec2-user:ec2-user /home/ec2-user/app",
-              "sudo -u ec2-user bash -c '\''cd /home/ec2-user/app && set -a && source .env && nohup ./main > app.log 2>&1 < /dev/null &'\''"
+              "sudo -u ec2-user bash -c '\''cd /home/ec2-user/app && nohup ./main > app.log 2>&1 < /dev/null &'\''"
             ]' \
             --query "Command.CommandId" \
             --output text)
