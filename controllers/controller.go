@@ -98,3 +98,9 @@ func ExibePaginaIndex(c *gin.Context) {
 func RotaNaoEncontrada(c *gin.Context) {
 	c.HTML(http.StatusNotFound, "404.html", nil)
 }
+
+func HealthCheck(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"status": "UP",
+	})
+}

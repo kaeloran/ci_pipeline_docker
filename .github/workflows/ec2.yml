@@ -114,9 +114,9 @@ jobs:
             exit 1
           fi
           echo "IP Público da instância: $PUBLIC_IP"
-          echo "Iniciando health check em http://$PUBLIC_IP:8000/index"
+          echo "Iniciando health check em http://$PUBLIC_IP:8000/health"
           for i in {1..20}; do
-            STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://$PUBLIC_IP:8000/index")
+            STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://$PUBLIC_IP:8000/health")
             echo "Health check (tentativa $i/20): Status Code $STATUS_CODE"
             if [ "$STATUS_CODE" -eq 200 ]; then
               echo "✅ Aplicação está online e respondendo."
