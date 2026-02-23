@@ -22,9 +22,39 @@ resource "aws_instance" "alura-go-api-dev" {
       aws_security_group.asg-alura-go-api-dev.id,
     ]
 
+    user_data = <<-EOF
+              #!/bin/bash
+              sudo dnf install -y postgresql15
+              
+              export PGPASSWORD='${local.db_creds.password}'
+              export DB_HOST='${aws_db_instance.postgres-alura-go-dev.address}'
+              export DB_USER='${aws_db_instance.postgres-alura-go-dev.username}'
+              export APP_DB_NAME='${var.db_name}'
+
+              for i in {1..15}; do
+                if psql -h $DB_HOST -U $DB_USER -d postgres -c "select 1" > /dev/null 2>&1; then
+                  echo "RDS está pronto!"
+                  break
+                fi
+                echo "Aguardando RDS..."
+                sleep 10
+              done
+
+              DB_EXISTS=$(psql -h $DB_HOST -U $DB_USER -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$APP_DB_NAME'")
+
+              if [ "$DB_EXISTS" != "1" ]; then
+                echo "Banco de dados $APP_DB_NAME não existe. Criando..."
+                psql -h $DB_HOST -U $DB_USER -d postgres -c "CREATE DATABASE $APP_DB_NAME;"
+              else
+                echo "Banco de dados $APP_DB_NAME já existe. Pulando criação."
+              fi
+              EOF
+
     tags = {
         Name = "alura-go-api-dev"
     }
+
+    depends_on = [aws_db_instance.postgres-alura-go-dev]
 }
 
 data "aws_secretsmanager_secret" "db" {
