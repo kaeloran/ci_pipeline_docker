@@ -73,6 +73,7 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --parameters 'commands=[
               "#!/bin/bash",
+              "sudo apt-get update -y && sudo apt-get install -y unzip",
               "killall main || true",
               "cd /home/ubuntu",
               "mkdir -p app",
@@ -96,7 +97,15 @@ jobs:
             
           echo "Comando SSM enviado com ID: $COMMAND_ID"
           
-          # Esperar que o comando termine para garantir que o deploy não falhou
-          aws ssm wait command-executed \
-            --command-id "$COMMAND_ID" \
-            --instance-id "${{ inputs.instance-id }}"
+          # Tenta esperar o comando terminar. Se falhar, busca o log de erro e imprime na tela!
+          if ! aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "${{ inputs.instance-id }}"; then
+            echo "❌ O script falhou dentro da EC2. Verificando os logs do servidor:"
+            aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "${{ inputs.instance-id }}" \
+              --query "StandardErrorContent" \
+              --output text
+            exit 1
+          fi
+          
+          echo "✅ Deploy executado com sucesso!"
