@@ -42,6 +42,30 @@ jobs:
       - name: Upload para o S3
         run: aws s3 cp app.zip s3://${{ secrets.S3_DEPLOY_BUCKET }}/app.zip
 
+      - name: Aguardar SSM Agent ficar Online
+        run: |
+          echo "Aguardando a instância ${{ inputs.instance-id }} registrar-se no AWS SSM..."
+          
+          for i in {1..30}; do
+            STATUS=$(aws ssm describe-instance-information \
+              --filters "Key=InstanceIds,Values=${{ inputs.instance-id }}" \
+              --query "InstanceInformationList[0].PingStatus" \
+              --output text)
+              
+            if [ "$STATUS" == "Online" ]; then
+              echo "✅ Instância está Online e pronta para receber comandos!"
+              break
+            fi
+            
+            echo "Status atual: $STATUS. Tentativa $i/30. Aguardando 10 segundos..."
+            sleep 10
+          done
+          
+          if [ "$STATUS" != "Online" ]; then
+            echo "❌ Timeout: A instância não ficou online no SSM a tempo."
+            exit 1
+          fi
+
       - name: Executar Deploy na EC2 via SSM
         run: |
           COMMAND_ID=$(aws ssm send-command \
