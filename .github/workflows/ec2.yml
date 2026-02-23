@@ -36,8 +36,21 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1 
 
+      - name: Create .env file
+        env:
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: |
+          echo "DB_HOST=${{ inputs.db-endpoint }}" > .env
+          echo "DB_USER=${DB_USER}" >> .env
+          echo "DB_PASSWORD=${DB_PASSWORD}" >> .env
+          echo "DB_NAME=${DB_NAME}" >> .env
+          echo "DB_PORT=5432" >> .env
+          echo "PORT=8000" >> .env
+
       - name: Empacotar Aplicação
-        run: zip -r app.zip main templates/
+        run: zip -r app.zip main templates/ .env
 
       - name: Upload para o S3
         run: aws s3 cp app.zip s3://${{ secrets.S3_DEPLOY_BUCKET }}/app.zip
@@ -67,35 +80,23 @@ jobs:
           fi
 
       - name: Executar Deploy na EC2 via SSM
-        env:
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_NAME: ${{ secrets.DB_NAME }}
         run: |
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "${{ inputs.instance-id }}" \
             --document-name "AWS-RunShellScript" \
-            --parameters "commands=[
-              \"#!/bin/bash\",
-              \"sudo yum install -y unzip\", 
-              \"killall main || true\",
-              \"cd /home/ec2-user\",
-              \"mkdir -p app\",
-              \"aws s3 cp s3://${{ secrets.S3_DEPLOY_BUCKET }}/app.zip .\",
-              \"unzip -o app.zip -d app/\",
-              \"cd app\",
-              \"chmod +x main\",
-              \"cat <<EOF > .env\",
-              \"DB_HOST=${{ inputs.db-endpoint }}\",
-              \"DB_USER=$DB_USER\",
-              \"DB_PASSWORD=$DB_PASSWORD\",
-              \"DB_NAME=$DB_NAME\",
-              \"DB_PORT=5432\",
-              \"PORT=8000\",
-              \"EOF\",
-              \"chown -R ec2-user:ec2-user /home/ec2-user/app\",
-              \"sudo -u ec2-user bash -c 'cd /home/ec2-user/app && set -a && source .env && nohup ./main > app.log 2>&1 < /dev/null &'\"
-            ]" \
+            --parameters 'commands=[
+              "#!/bin/bash",
+              "sudo yum install -y unzip", 
+              "killall main || true",
+              "cd /home/ec2-user",
+              "mkdir -p app",
+              "aws s3 cp s3://${{ secrets.S3_DEPLOY_BUCKET }}/app.zip .",
+              "unzip -o app.zip -d app/",
+              "cd app",
+              "chmod +x main",
+              "chown -R ec2-user:ec2-user /home/ec2-user/app",
+              "sudo -u ec2-user bash -c '\''cd /home/ec2-user/app && set -a && source .env && nohup ./main > app.log 2>&1 < /dev/null &'\''"
+            ]' \
             --query "Command.CommandId" \
             --output text)
             
