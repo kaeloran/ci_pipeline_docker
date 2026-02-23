@@ -34,3 +34,9 @@ variable "s3_deploy_bucket" {
     type        = string
     sensitive   = true
 }
+
+variable "db_name" {
+    description = "The name of the database to create in the RDS instance."
+    type        = string
+    sensitive   = true
+}
