@@ -10,15 +10,6 @@ provider "aws" {
   region = "us-east-1"
 }
 
-resource "aws_s3_bucket" "deploy_artefacts" {
-  bucket = var.s3_deploy_bucket
-  
-  tags = {
-    Name        = "Deploy Artefacts"
-    Environment = "dev"
-  }
-}
-
 resource "aws_instance" "alura-go-api-dev" {
     ami           = var.amis["us-east-1"]
     instance_type = "t3.micro"
