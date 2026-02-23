@@ -11,13 +11,7 @@ on:
         value: ${{ jobs.terraform.outputs.db_endpoint }}
       db_port:
         description: "Port of the database"
-        value: ${{ jobs.terraform.outputs.db_port }}
-      db_user:
-        description: "DB Username do Terraform"
-        value: ${{ jobs.terraform.outputs.db_user }} # CORRIGIDO AQUI (Estava required/type string em vez de value)
-      db_password:
-        description: "DB Password do Terraform"
-        value: ${{ jobs.terraform.outputs.db_password }} # CORRIGIDO AQUI
+        value: ${{ jobs.terraform.outputs.db_port }}     
 
 permissions:
   id-token: write 
@@ -29,9 +23,7 @@ jobs:
     outputs:
       instance_id: ${{ steps.outputs.outputs.instance_id }}
       db_endpoint: ${{ steps.outputs.outputs.db_endpoint }}
-      db_port: ${{ steps.outputs.outputs.db_port }}
-      db_user: ${{ steps.outputs.outputs.db_user }}
-      db_password: ${{ steps.outputs.outputs.db_password }}
+      db_port: ${{ steps.outputs.outputs.db_port }}      
 
     steps:
       - name: Checkout code

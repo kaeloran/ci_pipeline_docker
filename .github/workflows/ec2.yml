@@ -10,16 +10,7 @@ on:
       db-endpoint:
         description: "Endpoint do RDS"
         required: true
-        type: string
-      # ADICIONADO AQUI: O ficheiro precisa saber que vai receber estes valores
-      db-user:
-        description: "DB Username do Terraform"
-        required: true
-        type: string
-      db-password:
-        description: "DB Password do Terraform"
-        required: true
-        type: string
+        type: string      
 
 env:
   AWS_REGION: "us-east-1"
@@ -92,8 +83,8 @@ jobs:
               "chmod +x main",
               "cat <<EOF > .env",
               "DB_HOST=${{ inputs.db-endpoint }}",
-              "DB_USER=${{ inputs.db-user }}",
-              "DB_PASSWORD=${{ inputs.db-password }}",
+              "DB_USER=${{ secrets.DB_USER }}",
+              "DB_PASSWORD=${{ secrets.DB_PASSWORD }}",
               "DB_NAME=${{ secrets.DB_NAME }}",
               "DB_PORT=5432",
               "PORT=8000",

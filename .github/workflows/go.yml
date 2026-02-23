@@ -17,17 +17,14 @@ jobs:
 
   build:
     needs: terraform
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go_version: ['1.22']
+    runs-on: ubuntu-latest    
     steps:
     - uses: actions/checkout@v4
     
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: ${{ matrix.go_version }}
+        go-version: '1.22'
 
     - name: Build
       run: go build -v -o main main.go
@@ -45,7 +42,5 @@ jobs:
     uses: ./.github/workflows/ec2.yml
     with:      
       instance-id: ${{ needs.terraform.outputs.instance_id }}
-      db-endpoint: ${{ needs.terraform.outputs.db_endpoint }}
-      db-user: ${{ needs.terraform.outputs.db_user }}
-      db-password: ${{ needs.terraform.outputs.db_password }}
+      db-endpoint: ${{ needs.terraform.outputs.db_endpoint }}      
     secrets: inherit
