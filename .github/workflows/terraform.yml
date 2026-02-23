@@ -3,18 +3,15 @@ name: Terraform Pipeline
 on:
   workflow_call:
     outputs:
-      app_ip:
-        description: "Public IP do servidor Go"
-        value: ${{ jobs.terraform.outputs.app_ip }}
+      instance_id:
+        description: "ID da instância EC2 (SSM)"
+        value: ${{ jobs.terraform.outputs.instance_id }}
       db_endpoint:
         description: "Endpoint of the database"
         value: ${{ jobs.terraform.outputs.db_endpoint }}
       db_port:
         description: "Port of the database"
         value: ${{ jobs.terraform.outputs.db_port }}
-      sg_ssh_id:
-        description: "ID do Security Group de SSH"
-        value: ${{ jobs.terraform.outputs.sg_ssh_id }}  
 
 permissions:
   id-token: write 
@@ -24,10 +21,9 @@ jobs:
   terraform:
     runs-on: ubuntu-latest
     outputs:
-      app_ip: ${{ steps.outputs.outputs.app_ip }}
+      instance_id: ${{ steps.outputs.outputs.instance_id }}
       db_endpoint: ${{ steps.outputs.outputs.db_endpoint }}
       db_port: ${{ steps.outputs.outputs.db_port }}
-      sg_ssh_id: ${{ steps.outputs.outputs.sg_ssh_id }} # ADICIONADO AQUI
 
     steps:
       - name: Checkout code
@@ -49,7 +45,7 @@ jobs:
         working-directory: ./terraform
 
       - name: Terraform plan
-        run: terraform plan -out=tfplan -var 'cdirs_acesso_remoto=${{ secrets.REMOTE_ACCESS_CIDR }}'
+        run: terraform plan -out=tfplan -var="cdirs_acesso_remoto=${{ secrets.REMOTE_ACCESS_CIDR }}" -var="s3_deploy_bucket=${{ secrets.S3_DEPLOY_BUCKET }}"
         working-directory: ./terraform
       
       - name: Terraform apply
@@ -60,11 +56,12 @@ jobs:
         id: outputs
         working-directory: ./terraform
         run: |
-          ip=$(terraform output -raw alura_go_api_dev_public_ip)
-          echo "app_ip=$ip" >> $GITHUB_OUTPUT
+          # Lemos o ID da instância gerado pelo Terraform e guardamos na variável do GitHub Actions
+          instance=$(terraform output -raw ec2_instance_id)
+          echo "instance_id=$instance" >> $GITHUB_OUTPUT
+          
           db_endpoint=$(terraform output -raw db_endpoint)
           echo "db_endpoint=$db_endpoint" >> $GITHUB_OUTPUT
+          
           db_port=$(terraform output -raw db_port)
-          echo "db_port=$db_port" >> $GITHUB_OUTPUT          
-          sg_ssh=$(terraform output -raw sg_ssh_id)
-          echo "sg_ssh_id=$sg_ssh" >> $GITHUB_OUTPUT
+          echo "db_port=$db_port" >> $GITHUB_OUTPUT

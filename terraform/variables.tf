@@ -28,3 +28,9 @@ variable "db_password" {
     sensitive   = true
     default     = null
 }
+
+variable "s3_deploy_bucket" {
+    description = "Nome do bucket S3 para os artefatos de deploy"
+    type        = string
+    sensitive   = true
+}

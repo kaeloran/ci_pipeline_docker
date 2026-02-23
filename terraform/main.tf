@@ -7,13 +7,24 @@ terraform {
 }
 
 provider "aws" {    
-  region                   = "us-east-1"
+  region = "us-east-1"
+}
+
+resource "aws_s3_bucket" "deploy_artefacts" {
+  bucket = var.s3_deploy_bucket
+  
+  tags = {
+    Name        = "Deploy Artefacts"
+    Environment = "dev"
+  }
 }
 
 resource "aws_instance" "alura-go-api-dev" {
     ami           = var.amis["us-east-1"]
     instance_type = "t3.micro"
     key_name      = var.key_name
+        
+    iam_instance_profile = "GitHubActionsEc2SSMRole"
     
     vpc_security_group_ids = [
       aws_security_group.asg-acesso-ssh.id,
@@ -54,11 +65,3 @@ resource "aws_db_instance" "postgres-alura-go-dev" {
   }
 }
 
-# resource "aws_s3_bucket" "bucket-dev3" {
-#   bucket = "kaeloranlabs-dev3"  
-
-#   tags = {
-#     Name        = "kaeloranlabs-dev3"
-#     Environment = "dev"
-#   }
-# }

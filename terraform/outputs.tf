@@ -1,7 +1,3 @@
-output "alura_go_api_dev_public_ip" {
-  value = aws_instance.alura-go-api-dev.public_ip
-}
-
 output "db_endpoint" {
   description = "Address of the PostgreSQL database"
   value       = aws_db_instance.postgres-alura-go-dev.address
@@ -12,7 +8,7 @@ output "db_port" {
   value       = aws_db_instance.postgres-alura-go-dev.port
 }
 
-output "sg_ssh_id" {
-  description = "ID do Security Group de SSH"
-  value       = aws_security_group.asg-acesso-ssh.id
+output "ec2_instance_id" {
+  description = "ID da Instância EC2 (Necessário para o AWS SSM)"
+  value       = aws_instance.alura-go-api-dev.id
 }

@@ -6,32 +6,31 @@ on:
   pull_request:
     branches: [ '*' ]
 
-jobs:
+permissions:
+  id-token: write
+  contents: read
+
+jobs:    
   terraform:
     uses: ./.github/workflows/terraform.yml
-    secrets: inherit
-
-  test:
-    needs: terraform
-    uses: ./.github/workflows/go_test.yml
-    with:
-      app-ip: ${{ needs.terraform.outputs.app_ip }}
-      db-endpoint: ${{ needs.terraform.outputs.db_endpoint }}
-      db-port: ${{ needs.terraform.outputs.db_port }}
-      sg-ssh-id: ${{ needs.terraform.outputs.sg_ssh_id }}
-    secrets: inherit
+    secrets: inherit 
 
   build:
-    needs: test
+    needs: terraform
     runs-on: ubuntu-latest
     strategy:
       matrix:
         go_version: ['1.22']
     steps:
-    - uses: actions/checkout@v4 # Atualizado para v4
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ matrix.go_version }}
 
     - name: Build
-      run: go build -v main.go
+      run: go build -v -o main main.go
 
     - name: Upload binary artifact
       uses: actions/upload-artifact@v4
@@ -44,8 +43,7 @@ jobs:
   deploy_ec2:
     needs: [terraform, build]
     uses: ./.github/workflows/ec2.yml
-    with:
-      app-ip: ${{ needs.terraform.outputs.app_ip }}
+    with:      
+      instance-id: ${{ needs.terraform.outputs.instance_id }}
       db-endpoint: ${{ needs.terraform.outputs.db_endpoint }}
-      sg-ssh-id: ${{ needs.terraform.outputs.sg_ssh_id }}
     secrets: inherit

@@ -1,82 +1,78 @@
-name: Entrega contínua EC2
+name: Entrega contínua EC2 via SSM
 
 on:
   workflow_call:
     inputs:
-      app-ip:
-        description: "IP público da instância onde a API será implantada"
+      instance-id: 
+        description: "ID da instância EC2"
         required: true
         type: string
       db-endpoint:
         description: "Endpoint do RDS"
         required: true
         type: string
-      sg-ssh-id: # ADICIONADO AQUI
-        description: "ID do Security Group de acesso SSH"
-        required: true
-        type: string
+
+env:
+  AWS_REGION: "us-east-1"
 
 permissions:
-  id-token: write 
-  contents: read
-          
+  id-token: write
+  contents: read  
+
 jobs:
-  EC2:
+  Deploy_SSM:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Download a Build Artifact
+      
+      - name: Download Build Artifact
         uses: actions/download-artifact@v4
         with:
           name: go-app
-      
+          
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: us-east-1
+          aws-region: us-east-1 
 
-      # 2. Descobre o IP do runner
-      - name: Get GitHub Runner IP
-        id: ip
-        run: echo "ipv4=$(curl -s https://checkip.amazonaws.com)" >> $GITHUB_OUTPUT
-      
-      # 3. Abre a porta 22 na AWS APENAS para este IP
-      - name: Whitelist Runner IP
+      - name: Empacotar Aplicação
+        run: zip -r app.zip main templates/
+
+      - name: Upload para o S3
+        run: aws s3 cp app.zip s3://${{ secrets.S3_DEPLOY_BUCKET }}/app.zip
+
+      - name: Executar Deploy na EC2 via SSM
         run: |
-          aws ec2 authorize-security-group-ingress \
-            --group-id ${{ inputs.sg-ssh-id }} \
-            --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32  
-
-      # 4. COPIAR OS ARQUIVOS PARA A EC2
-      - name: Copy files via scp
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ inputs.app-ip }}
-          username: ubuntu
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "main,templates/" 
-          target: "/home/ubuntu/app"
-
-      # 5. EXECUTAR OS COMANDOS
-      - name: Executing remote ssh commands
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ inputs.app-ip }}
-          username: ubuntu
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /home/ubuntu/app
-
-            killall main || true
-            chmod +x main
-
-            export DB_HOST="${{ inputs.db-endpoint }}" 
-            export DB_USER="${{ secrets.DB_USER }}"
-            export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
-            export DB_NAME="${{ secrets.DB_NAME }}"
-            export DB_PORT="5432"
-            export PORT="8000"
-
-            nohup ./main > nohup.out 2> nohup.err < /dev/null &
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ inputs.instance-id }}" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "#!/bin/bash",
+              "killall main || true",
+              "cd /home/ubuntu",
+              "mkdir -p app",
+              "aws s3 cp s3://${{ secrets.S3_DEPLOY_BUCKET }}/app.zip .",
+              "unzip -o app.zip -d app/",
+              "cd app",
+              "chmod +x main",
+              "cat <<EOF > .env",
+              "DB_HOST=${{ inputs.db-endpoint }}",
+              "DB_USER=${{ secrets.DB_USER }}",
+              "DB_PASSWORD=${{ secrets.DB_PASSWORD }}",
+              "DB_NAME=${{ secrets.DB_NAME }}",
+              "DB_PORT=5432",
+              "PORT=8000",
+              "EOF",
+              "chown -R ubuntu:ubuntu /home/ubuntu/app",
+              "sudo -u ubuntu bash -c '\''cd /home/ubuntu/app && set -a && source .env && nohup ./main > app.log 2>&1 < /dev/null &'\''"
+            ]' \
+            --query "Command.CommandId" \
+            --output text)
+            
+          echo "Comando SSM enviado com ID: $COMMAND_ID"
+          
+          # Esperar que o comando termine para garantir que o deploy não falhou
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id "${{ inputs.instance-id }}"

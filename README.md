@@ -38,9 +38,11 @@ pipeline that builds a Dockerized database for tests.
   substituting variables, so the following file is sufficient:
 
   ```env
-  DB_USER=myuser
-  DB_PASSWORD=mypassword
-  DB_NAME=mydb
+  DB_HOST=localhost
+  DB_PORT=5432
+  DB_USER=foo   
+  DB_PASSWORD=bar 
+  DB_NAME=baz
   ```
 
   Then start the stack and run tests from the host:
