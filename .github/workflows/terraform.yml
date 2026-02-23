@@ -48,6 +48,7 @@ jobs:
         env:
           TF_VAR_cdirs_acesso_remoto: ${{ secrets.REMOTE_ACCESS_CIDR }}
           TF_VAR_s3_deploy_bucket: ${{ secrets.S3_DEPLOY_BUCKET }}
+          TF_VAR_db_name: ${{ secrets.DB_NAME }}
         run: terraform plan -out=tfplan
         working-directory: ./terraform
       

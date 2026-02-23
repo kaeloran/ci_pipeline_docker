@@ -12,8 +12,3 @@ output "ec2_instance_id" {
   description = "ID da Instância EC2 (Necessário para o AWS SSM)"
   value       = aws_instance.alura-go-api-dev.id
 }
-
-output "db_name" {
-  description = "Name of the database created"
-  value       = postgresql_database.app_db.name
-}
